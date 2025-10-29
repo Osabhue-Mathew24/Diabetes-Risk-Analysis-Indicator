@@ -18,15 +18,14 @@ st.markdown("<h1 style='color: #0077b6; text-align: center; font-size: 60px; fon
 st.markdown("<h4 style='margin: -30px; color: #00b4d8; text-align: center; font-family: Serif;'>Built by MATTHEW OSABHUE</h4>", unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
-image_path = "indictorimage.png"  # ✅ rename your image file to this
+image_path = "indictorimage.png"
 if os.path.exists(image_path):
     try:
         st.image(image_path, use_container_width=True)
     except TypeError:
-        # fallback for older Streamlit versions
         st.image(image_path, use_column_width=True)
 else:
-    st.warning("⚠️ Image file not found. Please check the image path or filename.")
+    st.warning("⚠️ Image file not found. Please check 'indictorimage.png' in your app folder.")
 st.divider()
 
 # ============== BACKGROUND SECTION ==============
@@ -40,7 +39,15 @@ By analyzing these metrics, healthcare practitioners and individuals can better 
 st.divider()
 
 # ============== SIDEBAR USER INPUT ==============
-st.sidebar.image('usericon.png', caption='Welcome User')
+user_icon = "usericon.png"
+if os.path.exists(user_icon):
+    try:
+        st.sidebar.image(user_icon, use_container_width=True, caption="Welcome User")
+    except TypeError:
+        st.sidebar.image(user_icon, use_column_width=True, caption="Welcome User")
+else:
+    st.sidebar.warning("⚠️ 'usericon.png' not found.")
+
 st.sidebar.markdown("### Enter Your Health Data")
 
 stage = st.sidebar.selectbox('Diabetes Stage (if known)', ['Normal', 'Prediabetes', 'Diabetes'], index=0)
@@ -62,7 +69,7 @@ else:
     bmi = round(weight / (height ** 2), 2)
     st.sidebar.info(f"Your calculated BMI is: **{bmi}**")
 
-# ============== DATAFRAME OF USER INPUT ==============
+# ============== USER INPUT DATAFRAME ==============
 user_input = {
     'stage': [stage],
     'hba1c': [hba1c],
@@ -73,50 +80,59 @@ user_input = {
     'bmi': [bmi]
 }
 input_df = pd.DataFrame(user_input)
+
 st.subheader("User Input Summary")
 st.dataframe(input_df, use_container_width=True)
 st.divider()
 
 # ============== LOAD OR TRAIN MODEL ==============
-model_path = r"C:\Users\DELL\OneDrive\Desktop\Machine_Learning\dataset_project\Diabetes_indicator.pkl"
+model_path = "Diabetes_indicator.pkl"
+dataset_path = "diabetes_dataset.csv"
 
 if not os.path.exists(model_path):
-    st.warning("⚠️ Model file not found. Retraining model automatically...")
+    st.warning("⚠️ Model file not found. Attempting to train automatically...")
 
-    # Try to load dataset for training
-    data_path = r"C:\Users\DELL\OneDrive\Desktop\Machine_Learning\dataset_project\diabetes_dataset.csv"
-    if not os.path.exists(data_path):
-        st.error(f"❌ Dataset not found at {data_path}. Please add the dataset for training.")
-        st.stop()
+    # --- If dataset missing, generate dummy dataset ---
+    if not os.path.exists(dataset_path):
+        st.info("📊 No dataset found. Creating a small dummy dataset for demo use.")
+        np.random.seed(42)
+        dummy_data = pd.DataFrame({
+            'stage': np.random.randint(0, 3, 200),
+            'hba1c': np.random.uniform(4.5, 10.0, 200),
+            'gluc_post': np.random.uniform(80, 300, 200),
+            'gluc_fast': np.random.uniform(70, 250, 200),
+            'fh_diabetes': np.random.randint(0, 2, 200),
+            'age': np.random.randint(18, 80, 200),
+            'bmi': np.random.uniform(18, 40, 200),
+            'diabetes': np.random.randint(0, 2, 200)
+        })
+        dummy_data.to_csv(dataset_path, index=False)
+        st.success("✅ Dummy dataset created.")
 
-    # === TRAIN A SIMPLE MODEL ===
-    df = pd.read_csv(data_path)
-    st.info("Training a new model using dataset...")
-
-    # Encode categorical features
+    # --- Load dataset and train model ---
+    df = pd.read_csv(dataset_path)
     if 'fh_diabetes' in df.columns:
-        df['fh_diabetes'] = df['fh_diabetes'].map({'No': 0, 'Yes': 1})
+        df['fh_diabetes'] = df['fh_diabetes'].map({'No': 0, 'Yes': 1}).fillna(df['fh_diabetes'])
     if 'stage' in df.columns:
-        df['stage'] = df['stage'].map({'Normal': 0, 'Prediabetes': 1, 'Diabetes': 2})
+        df['stage'] = df['stage'].map({'Normal': 0, 'Prediabetes': 1, 'Diabetes': 2}).fillna(df['stage'])
 
-    # Define features and target
-    target_col = 'diabetes'  # change if your dataset target column differs
+    target_col = 'diabetes'
     if target_col not in df.columns:
-        st.error(f"❌ Target column '{target_col}' not found in dataset.")
+        st.error(f"❌ Target column '{target_col}' not found. Add it to your dataset.")
         st.stop()
 
     X = df.drop(columns=[target_col])
     y = df[target_col]
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
     model = RandomForestClassifier(random_state=42)
     model.fit(X_train, y_train)
 
     joblib.dump(model, model_path)
-    st.success(f"✅ Model retrained and saved as {model_path}")
+    st.success("✅ Model retrained and saved successfully!")
 else:
     model = joblib.load(model_path)
+    st.success("✅ Model loaded successfully.")
 
 # ============== ENCODE INPUTS & PREDICT ==============
 input_df['fh_diabetes'] = input_df['fh_diabetes'].map({'No': 0, 'Yes': 1})
@@ -126,24 +142,21 @@ predict_button = st.button("🔍 Predict Diabetes Risk Score")
 
 if predict_button:
     try:
-        # Ensure feature alignment
         expected_features = getattr(model, "feature_names_in_", input_df.columns)
         missing_cols = set(expected_features) - set(input_df.columns)
         for col in missing_cols:
             input_df[col] = 0
         input_df = input_df[expected_features]
 
-        # Prediction
         if hasattr(model, "predict_proba"):
             risk_score = model.predict_proba(input_df)[:, 1][0]
         else:
             risk_score = model.predict(input_df)[0]
 
-        # Display result
         st.success(f"🎯 **Predicted Diabetes Risk Score:** {risk_score:.2%}")
 
         if risk_score < 0.4:
-            st.info("🟢 **Low Risk** — Maintain a healthy lifestyle, exercise, and balanced diet.")
+            st.info("🟢 **Low Risk** — Maintain a healthy lifestyle and balanced diet.")
         elif risk_score < 0.7:
             st.warning("🟠 **Moderate Risk** — Monitor glucose levels and consult a healthcare provider.")
         else:
@@ -155,9 +168,9 @@ if predict_button:
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown("### Risk Level Interpretation")
 st.markdown("""
-- **Low Risk (<40%)**: Maintain a healthy lifestyle, regular exercise, and balanced diet.  
-- **Moderate Risk (40–69%)**: Monitor blood glucose levels and consult your healthcare provider.  
-- **High Risk (≥70%)**: Requires medical attention and lifestyle adjustments.
+- **Low Risk (<40%)**: Maintain a healthy lifestyle and diet.  
+- **Moderate Risk (40–69%)**: Monitor glucose levels and consult your doctor.  
+- **High Risk (≥70%)**: Requires medical attention and lifestyle changes.
 """)
 
 st.divider()
