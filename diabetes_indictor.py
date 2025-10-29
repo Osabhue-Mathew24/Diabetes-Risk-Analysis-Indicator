@@ -79,10 +79,10 @@ user_input = {
     'age': [age],
     'bmi': [bmi]
 }
-input_df = pd.DataFrame(user_input)
+input_data = pd.DataFrame(user_input)
 
 st.subheader("User Input Summary")
-st.dataframe(input_df, use_container_width=True)
+st.dataframe(input_data, use_container_width=True)
 st.divider()
 
 # ============== LOAD OR TRAIN MODEL ==============
@@ -110,23 +110,23 @@ if not os.path.exists(model_path):
         st.success("✅ Dummy dataset created.")
 
     # --- Load dataset and train model ---
-    df = pd.read_csv(dataset_path)
-    if 'fh_diabetes' in df.columns:
-        df['fh_diabetes'] = df['fh_diabetes'].map({'No': 0, 'Yes': 1}).fillna(df['fh_diabetes'])
-    if 'stage' in df.columns:
-        df['stage'] = df['stage'].map({'Normal': 0, 'Prediabetes': 1, 'Diabetes': 2}).fillna(df['stage'])
+    data = pd.read_csv(dataset_path)
+    if 'fh_diabetes' in data.columns:
+        data['fh_diabetes'] = data['fh_diabetes'].map({'No': 0, 'Yes': 1}).fillna(data['fh_diabetes'])
+    if 'stage' in data.columns:
+        data['stage'] = data['stage'].map({'Normal': 0, 'Prediabetes': 1, 'Diabetes': 2}).fillna(data['stage'])
 
     target_col = 'diabetes'
-    if target_col not in df.columns:
+    if target_col not in data.columns:
         st.error(f"❌ Target column '{target_col}' not found. Add it to your dataset.")
         st.stop()
 
-    X = df.drop(columns=[target_col])
-    y = df[target_col]
+    x = data.drop(columns=[target_col])
+    y = data[target_col]
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    xtrain, xtest, ytrain, ytest = train_test_split(x, y, test_size=0.2, random_state=42)
     model = RandomForestClassifier(random_state=42)
-    model.fit(X_train, y_train)
+    model.fit(xtrain, ytrain)
 
     joblib.dump(model, model_path)
     st.success("✅ Model retrained and saved successfully!")
@@ -135,23 +135,23 @@ else:
     st.success("✅ Model loaded successfully.")
 
 # ============== ENCODE INPUTS & PREDICT ==============
-input_df['fh_diabetes'] = input_df['fh_diabetes'].map({'No': 0, 'Yes': 1})
-input_df['stage'] = input_df['stage'].map({'Normal': 0, 'Prediabetes': 1, 'Diabetes': 2})
+input_data['fh_diabetes'] = input_data['fh_diabetes'].map({'No': 0, 'Yes': 1})
+input_data['stage'] = input_data['stage'].map({'Normal': 0, 'Prediabetes': 1, 'Diabetes': 2})
 
 predict_button = st.button("🔍 Predict Diabetes Risk Score")
 
 if predict_button:
     try:
-        expected_features = getattr(model, "feature_names_in_", input_df.columns)
-        missing_cols = set(expected_features) - set(input_df.columns)
+        expected_features = getattr(model, "feature_names_in_", input_data.columns)
+        missing_cols = set(expected_features) - set(input_data.columns)
         for col in missing_cols:
-            input_df[col] = 0
-        input_df = input_df[expected_features]
+            input_data[col] = 0
+        input_data = input_data[expected_features]
 
         if hasattr(model, "predict_proba"):
-            risk_score = model.predict_proba(input_df)[:, 1][0]
+            risk_score = model.predict_proba(input_data)[:, 1][0]
         else:
-            risk_score = model.predict(input_df)[0]
+            risk_score = model.predict(input_data)[0]
 
         st.success(f"🎯 **Predicted Diabetes Risk Score:** {risk_score:.2%}")
 
@@ -169,7 +169,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 st.markdown("### Risk Level Interpretation")
 st.markdown("""
 - **Low Risk (<40%)**: Maintain a healthy lifestyle and diet.  
-- **Moderate Risk (40–69%)**: Monitor glucose levels and consult your doctor.  
+- **Moderate Risk (40 - 69%)**: Monitor glucose levels and consult your doctor.  
 - **High Risk (≥70%)**: Requires medical attention and lifestyle changes.
 """)
 
