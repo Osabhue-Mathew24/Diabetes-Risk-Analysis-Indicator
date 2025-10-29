@@ -18,7 +18,7 @@ st.markdown("<h1 style='color: #0077b6; text-align: center; font-size: 60px; fon
 st.markdown("<h4 style='margin: -30px; color: #00b4d8; text-align: center; font-family: Serif;'>Built by MATTHEW OSABHUE</h4>", unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
-st.image('inicator.png.png', use_container_width=True)
+st.image('indictorimage.png', use_container_width=True)
 st.divider()
 
 # ============== BACKGROUND SECTION ==============
@@ -32,7 +32,7 @@ By analyzing these metrics, healthcare practitioners and individuals can better 
 st.divider()
 
 # ============== SIDEBAR USER INPUT ==============
-st.sidebar.image('user.png.png', caption='Welcome User')
+st.sidebar.image('usericon.png', caption='Welcome User')
 st.sidebar.markdown("### Enter Your Health Data")
 
 stage = st.sidebar.selectbox('Diabetes Stage (if known)', ['Normal', 'Prediabetes', 'Diabetes'], index=0)
