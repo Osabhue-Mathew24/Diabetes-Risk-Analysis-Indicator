@@ -18,7 +18,15 @@ st.markdown("<h1 style='color: #0077b6; text-align: center; font-size: 60px; fon
 st.markdown("<h4 style='margin: -30px; color: #00b4d8; text-align: center; font-family: Serif;'>Built by MATTHEW OSABHUE</h4>", unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
-st.image('indictorimage.png', use_container_width=True)
+image_path = "indictorimage.png"  # ✅ rename your image file to this
+if os.path.exists(image_path):
+    try:
+        st.image(image_path, use_container_width=True)
+    except TypeError:
+        # fallback for older Streamlit versions
+        st.image(image_path, use_column_width=True)
+else:
+    st.warning("⚠️ Image file not found. Please check the image path or filename.")
 st.divider()
 
 # ============== BACKGROUND SECTION ==============
